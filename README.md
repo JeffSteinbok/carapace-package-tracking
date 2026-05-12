@@ -1,5 +1,7 @@
 # 📦 carapace-package-tracking
 
+> **🚧 Work in Progress** — This project is under active development and not ready for consumption yet. If you're interested, subscribe to this repo to get notified when it's ready.
+
 [![CI](https://github.com/JeffSteinbok/carapace-package-tracking/actions/workflows/ci.yml/badge.svg)](https://github.com/JeffSteinbok/carapace-package-tracking/actions/workflows/ci.yml)
 [![npm](https://img.shields.io/npm/v/carapace-package-tracking)](https://www.npmjs.com/package/carapace-package-tracking)
 
