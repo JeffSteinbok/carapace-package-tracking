@@ -65,10 +65,11 @@ describe("plugin entry", () => {
     expect(entry.name).toBe("Package Tracking");
   });
 
-  it("registers all 5 tools", async () => {
+  it("registers all 6 tools", async () => {
     const { api } = await loadPlugin();
     const names = Object.keys(api.tools).sort();
     expect(names).toEqual([
+      "get_package_status",
       "package_add",
       "package_list",
       "package_remove",
@@ -287,5 +288,110 @@ describe("package_scan", () => {
     const result = await api.tools["package_scan"].execute("id", {});
     const parsed = parseResult(result);
     expect(parsed).toMatchObject({ error: expect.stringContaining("text") });
+  });
+});
+
+// ---------------------------------------------------------------------------
+// get_package_status tool
+// ---------------------------------------------------------------------------
+
+describe("get_package_status", () => {
+  it("returns error when tracking_number is missing", async () => {
+    const { api } = await loadPlugin();
+    const result = await api.tools["get_package_status"].execute("id", {});
+    const parsed = parseResult(result);
+    expect(parsed).toMatchObject({ error: expect.stringContaining("tracking_number") });
+  });
+
+  it("returns error when no providers registered", async () => {
+    const { api } = await loadPlugin();
+    const result = await api.tools["get_package_status"].execute("id", {
+      tracking_number: "1Z999AA10123456784",
+    });
+    const parsed = parseResult(result);
+    expect(parsed).toMatchObject({ error: expect.stringContaining("No carrier status providers") });
+  });
+});
+
+// ---------------------------------------------------------------------------
+// StatusProviderRegistry
+// ---------------------------------------------------------------------------
+
+describe("StatusProviderRegistry", () => {
+  it("has no providers initially", async () => {
+    const { StatusProviderRegistry } = await import("../src/status.js");
+    const registry = new StatusProviderRegistry();
+    expect(registry.hasProviders).toBe(false);
+  });
+
+  it("registers and queries a provider", async () => {
+    const { StatusProviderRegistry } = await import("../src/status.js");
+    const registry = new StatusProviderRegistry();
+    registry.register({
+      name: "TestProvider",
+      carriers: ["UPS"],
+      async getStatus(tn) {
+        return {
+          tracking_number: tn,
+          carrier: "UPS",
+          status: "In Transit",
+          delivered: false,
+          last_update: null,
+          description: "On the way",
+        };
+      },
+    });
+    expect(registry.hasProviders).toBe(true);
+    const result = await registry.getStatus("1Z999AA10123456784", "UPS");
+    expect(result).not.toBeNull();
+    expect(result!.status).toBe("In Transit");
+    expect(result!.carrier).toBe("UPS");
+  });
+
+  it("returns null for unhandled carrier", async () => {
+    const { StatusProviderRegistry } = await import("../src/status.js");
+    const registry = new StatusProviderRegistry();
+    registry.register({
+      name: "UPSOnly",
+      carriers: ["UPS"],
+      async getStatus() { return null; },
+    });
+    const result = await registry.getStatus("123456789012", "FedEx");
+    expect(result).toBeNull();
+  });
+
+  it("later registrations take priority", async () => {
+    const { StatusProviderRegistry } = await import("../src/status.js");
+    const registry = new StatusProviderRegistry();
+    registry.register({
+      name: "First",
+      carriers: ["UPS"],
+      async getStatus(tn) {
+        return { tracking_number: tn, carrier: "UPS", status: "First", delivered: false, last_update: null, description: null };
+      },
+    });
+    registry.register({
+      name: "Second",
+      carriers: ["UPS"],
+      async getStatus(tn) {
+        return { tracking_number: tn, carrier: "UPS", status: "Second", delivered: false, last_update: null, description: null };
+      },
+    });
+    const result = await registry.getStatus("1Z999AA10123456784", "UPS");
+    expect(result!.status).toBe("Second");
+  });
+
+  it("wildcard carrier matches all", async () => {
+    const { StatusProviderRegistry } = await import("../src/status.js");
+    const registry = new StatusProviderRegistry();
+    registry.register({
+      name: "CatchAll",
+      carriers: ["*"],
+      async getStatus(tn, carrier) {
+        return { tracking_number: tn, carrier: carrier!, status: "Found", delivered: false, last_update: null, description: null };
+      },
+    });
+    const result = await registry.getStatus("ANYTHING", "SomeCarrier");
+    expect(result!.status).toBe("Found");
   });
 });

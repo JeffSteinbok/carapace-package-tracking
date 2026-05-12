@@ -7,6 +7,36 @@
 import { detectCarrier, getTrackingUrl } from "./carriers.js";
 import { getPackage, addPackage, removePackage, listPackages } from "./storage.js";
 import { scanTextForTrackingNumbers } from "./scanning.js";
+import { statusRegistry, type CarrierStatusPlugin } from "./status.js";
+import { builtinProviders } from "./providers/index.js";
+
+export { statusRegistry };
+
+export interface PackageTrackingConfig {
+  /** Paths to external ESM carrier status provider plugin modules to load at startup. */
+  status_providers?: string[];
+}
+
+export async function loadProviders(providers: string[]): Promise<void> {
+  // Register built-in providers first (USPS, FedEx, UPS)
+  for (const provider of builtinProviders) {
+    statusRegistry.register(provider);
+  }
+
+  // Then load any external/override providers (registered last = highest priority)
+  for (const pluginPath of providers) {
+    try {
+      const mod = await import(pluginPath) as CarrierStatusPlugin;
+      if (typeof mod.register !== "function") {
+        console.warn(`[package-tracking] status provider ${pluginPath} does not export register() — skipping`);
+        continue;
+      }
+      await mod.register(statusRegistry);
+    } catch (e) {
+      console.error(`[package-tracking] failed to load status provider ${pluginPath}: ${e}`);
+    }
+  }
+}
 
 export function handlePackageTrack(args: Record<string, unknown>): Record<string, unknown> {
   const trackingNumber = ((args.tracking_number as string) ?? "").trim();
@@ -88,4 +118,24 @@ export function handlePackageScan(args: Record<string, unknown>): Record<string,
     tracking_numbers: results,
     count: results.length,
   };
+}
+
+export async function handlePackageStatus(args: Record<string, unknown>): Promise<Record<string, unknown>> {
+  const trackingNumber = ((args.tracking_number as string) ?? "").trim();
+
+  if (!trackingNumber) {
+    return { error: "tracking_number is required" };
+  }
+
+  const carrier = (args.carrier as string | undefined) ?? undefined;
+
+  if (!statusRegistry.hasProviders) {
+    return { error: "No carrier status providers are registered. Configure status_providers in plugin config." };
+  }
+
+  const result = await statusRegistry.getStatus(trackingNumber, carrier);
+  if (!result) {
+    return { error: `No status provider available for tracking number: ${trackingNumber}` };
+  }
+  return result as unknown as Record<string, unknown>;
 }

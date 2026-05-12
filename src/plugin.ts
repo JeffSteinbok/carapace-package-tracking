@@ -21,6 +21,9 @@ import {
   handlePackageRemove,
   handlePackageList,
   handlePackageScan,
+  handlePackageStatus,
+  loadProviders,
+  type PackageTrackingConfig,
 } from "./handlers.js";
 
 // `createEntry` is a required export name — the SDK's build tools look for it by name.
@@ -30,7 +33,13 @@ export const createEntry = definePlugin({
   description:
     "Track packages from UPS, FedEx, USPS, and Amazon. Detect carriers automatically, save packages for monitoring, and scan text for tracking numbers.",
 
-  configSchema: Type.Object({}),
+  configSchema: Type.Object({
+    status_providers: Type.Optional(
+      Type.Array(Type.String(), {
+        description: "Paths to external ESM carrier status provider plugin modules",
+      }),
+    ),
+  }),
 
   tools: (tool) => [
     // -----------------------------------------------------------------
@@ -133,6 +142,30 @@ export const createEntry = definePlugin({
       execute: async ({ text }) => {
         if (!text) return { error: "text is required" };
         return handlePackageScan({ text });
+      },
+    }),
+
+    // -----------------------------------------------------------------
+    // get_package_status — live carrier status
+    // -----------------------------------------------------------------
+    tool({
+      name: "get_package_status",
+      label: "Get Package Status",
+      description:
+        "Get live carrier status for a tracking number. Requires carrier status providers to be configured.",
+      parameters: Type.Object({
+        tracking_number: Type.String({
+          description: "Package tracking number to check status for",
+        }),
+        carrier: Type.Optional(
+          Type.String({
+            description: "Optional carrier override: UPS, FedEx, USPS, or Amazon",
+          }),
+        ),
+      }),
+      execute: async ({ tracking_number, carrier }) => {
+        if (!tracking_number?.trim()) return { error: "tracking_number is required" };
+        return handlePackageStatus({ tracking_number, carrier });
       },
     }),
   ],

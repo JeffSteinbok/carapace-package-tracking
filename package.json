@@ -35,6 +35,9 @@
     "@sinclair/typebox": "^0.34.48",
     "carapace-plugin-sdk": "^1.0.1"
   },
+  "optionalDependencies": {
+    "carapace-mail-runtime": "github:JeffSteinbok/carapace-mail-runtime"
+  },
   "devDependencies": {
     "@types/node": "^22",
     "tsup": "^8.3.0",
