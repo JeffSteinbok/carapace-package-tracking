@@ -1,0 +1,8 @@
+CARAPACE
+
+Package Tracking
+
+Track packages from UPS, FedEx, USPS, and Amazon in OpenClaw.
+Auto-detect carriers, scan emails for tracking numbers, and get live status.
+
+• Auto-Detect  • Email Scan  • Live Status  • Pluggable Providers

@@ -1,0 +1,81 @@
+{
+  "name": "carapace-package-tracking",
+  "version": "1.0.0",
+  "description": "📦 Package tracking plugin for OpenClaw — UPS, FedEx, USPS",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/JeffSteinbok/carapace-package-tracking"
+  },
+  "type": "module",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    },
+    "./plugin": {
+      "types": "./dist/plugin.d.ts",
+      "import": "./dist/plugin.js"
+    },
+    "./status": {
+      "types": "./dist/status.d.ts",
+      "import": "./dist/status.js"
+    },
+    "./mail-action": {
+      "types": "./dist/mail-action.d.ts",
+      "import": "./dist/mail-action.js"
+    }
+  },
+  "bin": {
+    "package-tracking": "./dist/bin/package-tracking.js"
+  },
+  "scripts": {
+    "build": "tsup && carapace-generate-cli --entry ./dist/plugin.js --out ./dist/bin",
+    "prepare": "npm run build",
+    "test": "vitest run"
+  },
+  "files": [
+    "dist",
+    "openclaw.plugin.json",
+    "README.md",
+    "LICENSE"
+  ],
+  "keywords": [
+    "openclaw",
+    "carapace",
+    "plugin",
+    "package-tracking",
+    "shipping",
+    "ups",
+    "fedex",
+    "usps"
+  ],
+  "dependencies": {
+    "@sinclair/typebox": "^0.34.48",
+    "carapace-plugin-sdk": "^1.0.1"
+  },
+  "optionalDependencies": {
+    "carapace-mail-runtime": "github:JeffSteinbok/carapace-mail-runtime"
+  },
+  "devDependencies": {
+    "@types/node": "^22",
+    "tsup": "^8.3.0",
+    "typescript": "^5.7",
+    "vitest": "^2.1.8"
+  },
+  "peerDependencies": {
+    "openclaw": "^2026.4.23"
+  },
+  "peerDependenciesMeta": {
+    "openclaw": {
+      "optional": true
+    }
+  },
+  "openclaw": {
+    "extensions": [
+      "./dist/adapter.js"
+    ]
+  },
+  "license": "MIT"
+}
