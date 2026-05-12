@@ -8,7 +8,7 @@
 import { spawn } from "node:child_process";
 import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
-import type { CarrierStatusProvider, CarrierStatusResult } from "../status.js";
+import type { CarrierStatusProvider, CarrierStatusResult } from "../../lib/status.js";
 
 const SUBPROCESS_TIMEOUT_MS = 45_000;
 

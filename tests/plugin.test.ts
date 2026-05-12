@@ -97,7 +97,7 @@ describe("carrier detection", () => {
   let getTrackingUrl: typeof import("../src/carriers.js").getTrackingUrl;
 
   beforeEach(async () => {
-    const mod = await import("../src/carriers.js");
+    const mod = await import("../src/lib/carriers.js");
     detectCarrier = mod.detectCarrier;
     getTrackingUrl = mod.getTrackingUrl;
   });
@@ -136,7 +136,7 @@ describe("text scanning", () => {
   let extractTrackingFromUrls: typeof import("../src/scanning.js").extractTrackingFromUrls;
 
   beforeEach(async () => {
-    const mod = await import("../src/scanning.js");
+    const mod = await import("../src/lib/scanning.js");
     scanTextForTrackingNumbers = mod.scanTextForTrackingNumbers;
     extractTrackingFromUrls = mod.extractTrackingFromUrls;
   });
@@ -218,7 +218,7 @@ describe("package storage", () => {
   });
 
   it("adds and lists a package", async () => {
-    const { addPackage, listPackages } = await import("../src/storage.js");
+    const { addPackage, listPackages } = await import("../src/lib/storage.js");
     const result = addPackage("1Z999AA10123456784", undefined, "Test");
     expect(result).not.toHaveProperty("error");
     expect(result).toHaveProperty("carrier", "UPS");
@@ -227,7 +227,7 @@ describe("package storage", () => {
   });
 
   it("removes a package", async () => {
-    const { addPackage, removePackage, listPackages } = await import("../src/storage.js");
+    const { addPackage, removePackage, listPackages } = await import("../src/lib/storage.js");
     addPackage("1Z999AA10123456784");
     const result = removePackage("1Z999AA10123456784");
     expect(result).toHaveProperty("success", true);
@@ -235,12 +235,12 @@ describe("package storage", () => {
   });
 
   it("returns error for missing package", async () => {
-    const { getPackage } = await import("../src/storage.js");
+    const { getPackage } = await import("../src/lib/storage.js");
     expect(getPackage("1Z999AA10123456784")).toHaveProperty("error");
   });
 
   it("rejects unknown carrier", async () => {
-    const { addPackage } = await import("../src/storage.js");
+    const { addPackage } = await import("../src/lib/storage.js");
     expect(addPackage("INVALIDTRACKING")).toHaveProperty("error");
   });
 });
