@@ -1,7 +1,7 @@
 {
   "name": "carapace-package-tracking",
   "version": "1.0.0",
-  "description": "📦 Package tracking plugin for OpenClaw — UPS, FedEx, USPS, Amazon",
+  "description": "📦 Package tracking plugin for OpenClaw — UPS, FedEx, USPS",
   "repository": {
     "type": "git",
     "url": "https://github.com/JeffSteinbok/carapace-package-tracking"
@@ -28,8 +28,7 @@
     "shipping",
     "ups",
     "fedex",
-    "usps",
-    "amazon"
+    "usps"
   ],
   "dependencies": {
     "@sinclair/typebox": "^0.34.48",

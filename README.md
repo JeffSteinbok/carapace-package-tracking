@@ -3,7 +3,7 @@
 [![CI](https://github.com/JeffSteinbok/carapace-package-tracking/actions/workflows/ci.yml/badge.svg)](https://github.com/JeffSteinbok/carapace-package-tracking/actions/workflows/ci.yml)
 [![npm](https://img.shields.io/npm/v/carapace-package-tracking)](https://www.npmjs.com/package/carapace-package-tracking)
 
-Package tracking plugin for [OpenClaw](https://github.com/JeffSteinbok/openclaw) — track packages across UPS, FedEx, USPS, and Amazon.
+Package tracking plugin for [OpenClaw](https://github.com/JeffSteinbok/openclaw) — track packages across UPS, FedEx, and USPS.
 
 Built with [carapace-plugin-sdk](https://github.com/JeffSteinbok/carapace-plugin-sdk).
 
@@ -26,7 +26,6 @@ npm install carapace-package-tracking
 ## Supported Carriers
 
 - **UPS** — `1Z` prefix tracking numbers
-- **Amazon** — `TBA` prefix tracking numbers
 - **FedEx** — 12, 15, or 20-digit tracking numbers
 - **USPS** — 20-22 digit tracking numbers (94-prefix, 92-95 prefix)
 
