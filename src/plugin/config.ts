@@ -3,7 +3,7 @@
  */
 
 import { statusRegistry, type CarrierStatusPlugin } from "../lib/status.js";
-import { builtinProviders } from "./providers/index.js";
+import { builtinProviders, fedexApiProvider } from "./providers/index.js";
 
 export interface PackageTrackingConfig {
   /** Paths to external ESM carrier status provider plugin modules to load at startup. */
@@ -11,10 +11,13 @@ export interface PackageTrackingConfig {
 }
 
 export async function loadProviders(providers: string[]): Promise<void> {
-  // Register built-in providers first (USPS, FedEx, UPS)
+  // Register Camoufox-based providers (USPS, FedEx, UPS)
   for (const provider of builtinProviders) {
     statusRegistry.register(provider);
   }
+
+  // Register FedEx API provider (takes priority over Camoufox for FedEx)
+  statusRegistry.register(fedexApiProvider);
 
   // Then load any external/override providers (registered last = highest priority)
   for (const pluginPath of providers) {
