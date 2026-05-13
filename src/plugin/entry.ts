@@ -15,10 +15,10 @@ import { loadProviders } from "./config.js";
 
 // Lazy-init providers on first status lookup (workaround until SDK exposes lifecycle hooks)
 let _providersLoaded = false;
-async function ensureProviders(config: { status_providers?: string[] }): Promise<void> {
+async function ensureProviders(config?: { status_providers?: string[] }): Promise<void> {
   if (_providersLoaded) return;
   _providersLoaded = true;
-  await loadProviders(config.status_providers ?? []);
+  await loadProviders(config?.status_providers ?? []);
 }
 
 export const createEntry = definePlugin({

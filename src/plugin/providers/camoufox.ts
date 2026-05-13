@@ -13,7 +13,8 @@ import type { CarrierStatusProvider, CarrierStatusResult } from "../../lib/statu
 const SUBPROCESS_TIMEOUT_MS = 45_000;
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
-const PYTHON_PACKAGE = resolve(__dirname, "..", "..", "python", "camoufox_tracker");
+// __dirname is dist/ after tsup bundling (flattened from src/plugin/providers/)
+const PYTHON_PACKAGE = resolve(__dirname, "..", "python", "camoufox_tracker");
 const PYTHON_BIN = process.env.CAMOUFOX_STATUS_PYTHON ?? "python3";
 
 const TRACKING_RE = /^[A-Za-z0-9 -]{6,40}$/;
