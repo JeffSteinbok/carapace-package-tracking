@@ -1,9 +1,6 @@
 # 📦 carapace-package-tracking
 
-> **🚧 Work in Progress** — This project is under active development and not ready for consumption yet. If you're interested, subscribe to this repo to get notified when it's ready.
-
 [![CI](https://github.com/JeffSteinbok/carapace-package-tracking/actions/workflows/ci.yml/badge.svg)](https://github.com/JeffSteinbok/carapace-package-tracking/actions/workflows/ci.yml)
-[![npm](https://img.shields.io/npm/v/carapace-package-tracking)](https://www.npmjs.com/package/carapace-package-tracking)
 
 Package tracking plugin for [OpenClaw](https://github.com/JeffSteinbok/openclaw) — track packages across UPS, FedEx, and USPS.
 
@@ -11,8 +8,32 @@ Built with [carapace-plugin-sdk](https://github.com/JeffSteinbok/carapace-plugin
 
 ## Install
 
+This package is not yet published to npm. Install directly from GitHub:
+
 ```bash
-npm install carapace-package-tracking
+npm install github:JeffSteinbok/carapace-package-tracking
+```
+
+Or in `package.json`:
+
+```json
+"dependencies": {
+  "carapace-package-tracking": "github:JeffSteinbok/carapace-package-tracking"
+}
+```
+
+The package includes a `prepare` script that builds automatically during install.
+
+### Optional: Mail action integration
+
+If you also use [carapace-mail-runtime](https://github.com/JeffSteinbok/carapace-mail-runtime), this package provides a `detect_tracking` action that scans incoming emails for tracking numbers:
+
+```typescript
+import { registerDetectTracking } from 'carapace-package-tracking/mail-action';
+
+registerDetectTracking(registry, {
+  accountLabelResolver: (env) => env.mailbox_id,
+});
 ```
 
 ## Tools
