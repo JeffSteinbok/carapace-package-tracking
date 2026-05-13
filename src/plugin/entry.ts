@@ -11,6 +11,15 @@ import { detectCarrier, getTrackingUrl } from "../lib/carriers.js";
 import { getPackage, addPackage, removePackage, listPackages } from "../lib/storage.js";
 import { scanTextForTrackingNumbers } from "../lib/scanning.js";
 import { statusRegistry } from "../lib/status.js";
+import { loadProviders } from "./config.js";
+
+// Lazy-init providers on first status lookup (workaround until SDK exposes lifecycle hooks)
+let _providersLoaded = false;
+async function ensureProviders(config: { status_providers?: string[] }): Promise<void> {
+  if (_providersLoaded) return;
+  _providersLoaded = true;
+  await loadProviders(config.status_providers ?? []);
+}
 
 export const createEntry = definePlugin({
   id: "package-tracking",
@@ -173,9 +182,11 @@ export const createEntry = definePlugin({
           }),
         ),
       }),
-      execute: async ({ tracking_number, carrier }) => {
+      execute: async ({ tracking_number, carrier }, config) => {
         const trackingNumber = (tracking_number ?? "").trim();
         if (!trackingNumber) return { error: "tracking_number is required" };
+
+        await ensureProviders(config);
 
         if (!statusRegistry.hasProviders) {
           return { error: "No carrier status providers are registered. Configure status_providers in plugin config." };

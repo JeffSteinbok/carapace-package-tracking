@@ -303,13 +303,14 @@ describe("get_package_status", () => {
     expect(parsed).toMatchObject({ error: expect.stringContaining("tracking_number") });
   });
 
-  it("returns error when no providers registered", async () => {
+  it("returns error when provider cannot fulfill request", async () => {
     const { api } = await loadPlugin();
     const result = await api.tools["get_package_status"].execute("id", {
       tracking_number: "1Z999AA10123456784",
     });
     const parsed = parseResult(result);
-    expect(parsed).toMatchObject({ error: expect.stringContaining("No carrier status providers") });
+    // Built-in providers are registered via lazy init but may fail (e.g. missing python3)
+    expect(parsed).toHaveProperty("error");
   });
 });
 

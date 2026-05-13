@@ -56,7 +56,7 @@
     "carapace-plugin-sdk": "^1.0.1"
   },
   "optionalDependencies": {
-    "carapace-mail-runtime": "github:JeffSteinbok/carapace-mail-runtime"
+    "carapace-mail-runtime": "^1.0.4"
   },
   "devDependencies": {
     "@types/node": "^22",
