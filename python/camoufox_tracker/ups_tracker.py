@@ -34,10 +34,14 @@ class UPSTracker(BaseTracker):
         return f"https://www.ups.com/track?tracknum={tn}"
 
     async def wait_for_content(self, page: Any) -> None:
-        await page.wait_for_selector(
-            ".ups-card, .card-header-custom, [class*='ups-card'], app-root",
-            timeout=20000,
-        )
+        # UPS SPA may take a while to hydrate. Poll body text for tracking
+        # markers instead of relying on CSS selectors that change frequently.
+        import asyncio
+        for _ in range(20):
+            body = await self._get_body_text(page)
+            if _TRACKING_MARKERS.search(body):
+                return
+            await asyncio.sleep(1)
 
     async def _get_body_text(self, page: Any) -> str:
         """Search main page and all child frames for body text with tracking data."""
