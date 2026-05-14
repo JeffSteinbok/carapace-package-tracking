@@ -1,6 +1,7 @@
 # 📦 carapace-package-tracking
 
 [![CI](https://github.com/JeffSteinbok/carapace-package-tracking/actions/workflows/ci.yml/badge.svg)](https://github.com/JeffSteinbok/carapace-package-tracking/actions/workflows/ci.yml)
+[![npm](https://img.shields.io/npm/v/carapace-package-tracking?logo=npm)](https://www.npmjs.com/package/carapace-package-tracking)
 
 Package tracking plugin for [OpenClaw](https://github.com/JeffSteinbok/openclaw) — track packages across UPS, FedEx, and USPS with live carrier status.
 
@@ -8,21 +9,20 @@ Built with [carapace-plugin-sdk](https://github.com/JeffSteinbok/carapace-plugin
 
 ## Install
 
-This package is not yet published to npm. Install directly from GitHub:
-
 ```bash
-npm install github:JeffSteinbok/carapace-package-tracking
+npm install carapace-package-tracking
 ```
 
-Or in `package.json`:
+## Features
 
-```json
-"dependencies": {
-  "carapace-package-tracking": "github:JeffSteinbok/carapace-package-tracking"
-}
-```
-
-The package includes a `prepare` script that builds automatically during install.
+| Feature | Description |
+|---------|-------------|
+| 📦 **Auto-detect** | Automatically identifies carrier from tracking number format |
+| 🔍 **Email scanning** | Scans incoming emails for tracking numbers via mail action plugin |
+| 📡 **Live status** | Real-time carrier status via API and Camoufox scraper providers |
+| 🔌 **Pluggable providers** | Register custom status providers for additional carriers |
+| 🖥️ **CLI** | Every tool available as a standalone command-line interface |
+| 🧩 **Extensible** | External provider plugins loaded via config |
 
 ### Optional: Mail action integration
 
