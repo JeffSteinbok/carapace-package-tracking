@@ -1,4 +1,4 @@
-# 📦 carapace-package-tracking
+# 🦞🐚 carapace-package-tracking
 
 [![CI](https://github.com/JeffSteinbok/carapace-package-tracking/actions/workflows/ci.yml/badge.svg)](https://github.com/JeffSteinbok/carapace-package-tracking/actions/workflows/ci.yml)
 [![npm](https://img.shields.io/npm/v/carapace-package-tracking?logo=npm)](https://www.npmjs.com/package/carapace-package-tracking)
