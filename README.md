@@ -24,6 +24,8 @@ npm install carapace-package-tracking
 | 🖥️ **CLI** | Every tool available as a standalone command-line interface |
 | 🧩 **Extensible** | External provider plugins loaded via config |
 
+> **Note:** USPS and UPS status tracking relies on browser scraping via [Camoufox](https://camoufox.com/) and may be fragile if carrier websites change their markup.
+
 ### Optional: Mail action integration
 
 If you also use [carapace-mail-runtime](https://github.com/JeffSteinbok/carapace-mail-runtime), this package provides a `detect_tracking` action that scans incoming emails for tracking numbers:
