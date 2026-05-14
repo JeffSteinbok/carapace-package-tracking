@@ -82,13 +82,38 @@ Providers are checked in this order (first non-null result wins):
 
 ### Camoufox Python Requirements
 
-The Camoufox scrapers spawn a Python subprocess. The Python environment must have:
+The USPS and UPS scrapers (and FedEx fallback) use [Camoufox](https://camoufox.com/), an anti-detect Firefox fork, via a Python subprocess. Setup:
 
-```bash
-pip install camoufox[geoip]
-```
+1. **Python 3.11+** is required.
 
-If your gateway runs under a service manager (e.g., systemd) whose `PATH` resolves to a different Python than your dev shell, set `CAMOUFOX_STATUS_PYTHON` to the correct binary path.
+2. **Install the Python package** (with GeoIP data for realistic geolocation):
+
+   ```bash
+   pip install camoufox[geoip]
+   ```
+
+3. **Install the Camoufox browser binary:**
+
+   ```bash
+   python -m camoufox fetch
+   ```
+
+4. **Virtual display (headless servers only)** — if running on a server without a display, install Xvfb:
+
+   ```bash
+   # Debian/Ubuntu
+   sudo apt install xvfb
+   ```
+
+   Camoufox will automatically use Xvfb when no display is available.
+
+5. **Verify the install:**
+
+   ```bash
+   python -c "from camoufox.async_api import AsyncCamoufox; print('OK')"
+   ```
+
+If your gateway runs under a service manager (e.g., systemd) whose `PATH` resolves to a different Python than your dev shell, set `CAMOUFOX_STATUS_PYTHON` to the full path of the correct Python binary.
 
 ### External Provider Plugins
 
