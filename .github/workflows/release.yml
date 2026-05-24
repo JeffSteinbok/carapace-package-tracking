@@ -23,7 +23,8 @@ on:
         default: ""
 
 permissions:
-  contents: read
+  contents: write
+  id-token: write
 
 jobs:
   release:
