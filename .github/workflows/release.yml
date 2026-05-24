@@ -31,5 +31,3 @@ jobs:
     with:
       version-bump: ${{ inputs.version-bump }}
       prerelease: ${{ inputs.prerelease }}
-    secrets:
-      npm-token: ${{ secrets.NPM_TOKEN }}
