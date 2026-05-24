@@ -109,19 +109,12 @@ export async function scanAndAddPackages(
       return [];
     }
 
-    const bodyText = envelope.body_text || "";
-    const found = bodyText ? scanTextForTrackingNumbers(bodyText) : [];
-
     const combined = combinedBody(envelope);
     const urlFound = extractTrackingFromUrls(combined);
-
-    const seenNumbers = new Set(found.map((r) => r.tracking_number));
-    for (const result of urlFound) {
-      if (!seenNumbers.has(result.tracking_number)) {
-        seenNumbers.add(result.tracking_number);
-        found.push(result);
-      }
-    }
+    const bodyText = envelope.body_text || "";
+    const found = urlFound.length > 0
+      ? [...urlFound]
+      : (bodyText ? scanTextForTrackingNumbers(bodyText, { strict: true }) : []);
 
     if (found.length === 0) return [];
 
@@ -152,9 +145,13 @@ export async function scanAndRemoveDelivered(
   },
 ): Promise<string[]> {
   const scanText = envelope.body_text || envelope.subject || "";
+  const combined = combinedBody(envelope);
 
   try {
-    const found = scanTextForTrackingNumbers(scanText);
+    const urlFound = extractTrackingFromUrls(combined);
+    const found = urlFound.length > 0
+      ? urlFound
+      : scanTextForTrackingNumbers(scanText, { strict: true });
     if (found.length === 0) {
       options.logger(`delivery email but no tracking number found: ${envelope.subject}`);
       return [];

@@ -14,14 +14,54 @@ export interface TrackingMatch {
   url: string;
 }
 
+export interface ScanTextOptions {
+  strict?: boolean;
+}
+
 // ---------------------------------------------------------------------------
 // Text scanning
 // ---------------------------------------------------------------------------
 
-export function scanTextForTrackingNumbers(text: string): TrackingMatch[] {
+const TRACKING_NUMBER_CONTEXT_PATTERN =
+  /\b(?:FEDEX|UPS|USPS|TRACKING(?:\s*(?:NO|NUMBER|#))?|TRK(?:\s*(?:NO|NUMBER|#))?|SHIPMENT(?:\s*(?:NO|NUMBER|#))?|WAYBILL(?:\s*(?:NO|NUMBER|#))?)\b/;
+const CONTEXT_WINDOW_SIZE = 80;
+
+function hasTrackingNumberContext(text: string, start: number, end: number): boolean {
+  // We scan a short local window around the candidate to avoid global false positives.
+  const windowStart = Math.max(0, start - CONTEXT_WINDOW_SIZE);
+  const windowEnd = Math.min(text.length, end + CONTEXT_WINDOW_SIZE);
+  const surrounding = text.slice(windowStart, windowEnd);
+  return TRACKING_NUMBER_CONTEXT_PATTERN.test(surrounding);
+}
+
+function shouldKeepMatch(
+  fullTextUpper: string,
+  matchStart: number,
+  matchEnd: number,
+  carrier: string,
+  trackingNumber: string,
+  strict: boolean,
+): boolean {
+  if (!strict) return true;
+
+  // Alphanumeric carrier formats are usually specific enough.
+  if (!/^\d+$/.test(trackingNumber)) return true;
+
+  // USPS known prefixes are also fairly specific.
+  if (carrier === "USPS" && /^(94|9[2-5])/.test(trackingNumber)) return true;
+
+  // Generic numeric candidates require nearby carrier/tracking-number context.
+  return hasTrackingNumberContext(fullTextUpper, matchStart, matchEnd);
+}
+
+export function scanTextForTrackingNumbers(
+  text: string,
+  options: ScanTextOptions = {},
+): TrackingMatch[] {
   if (!text) return [];
 
   const upper = text.toUpperCase();
+  const strict = options.strict === true;
   const results: TrackingMatch[] = [];
   const seen = new Set<string>();
 
@@ -31,6 +71,9 @@ export function scanTextForTrackingNumbers(text: string): TrackingMatch[] {
       let match: RegExpExecArray | null;
       while ((match = re.exec(upper)) !== null) {
         const num = match[0];
+        const start = match.index;
+        const end = start + num.length;
+        if (!shouldKeepMatch(upper, start, end, carrier.name, num, strict)) continue;
         if (seen.has(num)) continue;
         seen.add(num);
         results.push({

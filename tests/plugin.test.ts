@@ -168,6 +168,26 @@ describe("text scanning", () => {
     expect(results.length).toBe(1);
   });
 
+  it("strict mode ignores generic long numbers without tracking context", () => {
+    const text = "Invoice 123456789012 and order 123456789012345 are attached.";
+    const results = scanTextForTrackingNumbers(text, { strict: true });
+    expect(results).toEqual([]);
+  });
+
+  it("strict mode ignores Costco-style member IDs even in shipping emails", () => {
+    const text = "Track your package online. Costco member id: 123456789012";
+    const results = scanTextForTrackingNumbers(text, { strict: true });
+    expect(results).toEqual([]);
+  });
+
+  it("strict mode keeps numeric tracking numbers with nearby context", () => {
+    const text = "Your FedEx tracking number is 123456789012 and is in transit.";
+    const results = scanTextForTrackingNumbers(text, { strict: true });
+    expect(results).toHaveLength(1);
+    expect(results[0].carrier).toBe("FedEx");
+    expect(results[0].tracking_number).toBe("123456789012");
+  });
+
   it("extracts from UPS url", () => {
     const text = "https://www.ups.com/track?tracknum=1Z999AA10123456784";
     const results = extractTrackingFromUrls(text);
@@ -394,5 +414,53 @@ describe("StatusProviderRegistry", () => {
     });
     const result = await registry.getStatus("ANYTHING", "SomeCarrier");
     expect(result!.status).toBe("Found");
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Mail action scanning priority
+// ---------------------------------------------------------------------------
+
+describe("mail action scanning priority", () => {
+  const testDir = join(import.meta.dirname ?? __dirname, "__test_mail_action_storage__");
+  const openclawDir = join(testDir, ".openclaw");
+  const jsonPath = join(openclawDir, "package_tracking.json");
+
+  beforeEach(async () => {
+    const os = await import("node:os");
+    vi.mocked(os.homedir).mockReturnValue(testDir);
+    mkdirSync(openclawDir, { recursive: true });
+    if (existsSync(jsonPath)) unlinkSync(jsonPath);
+  });
+
+  afterEach(() => {
+    if (existsSync(jsonPath)) unlinkSync(jsonPath);
+    if (existsSync(openclawDir)) {
+      try { rmdirSync(openclawDir); } catch { /* ignore */ }
+    }
+    if (existsSync(testDir)) {
+      try { rmdirSync(testDir); } catch { /* ignore */ }
+    }
+  });
+
+  it("uses URL tracking results before free-text scanning", async () => {
+    const { scanAndAddPackages } = await import("../src/plugin/mail-action.js");
+    const added = await scanAndAddPackages(
+      {
+        sender_email: "alerts@fedex.com",
+        sender_name: "FedEx",
+        subject: "Your package is on the way",
+        body_text:
+          "FedEx tracking number 123456789012. Track here: https://www.ups.com/track?tracknum=1Z999AA10123456784",
+        body_html: null,
+        account_id: "acct",
+      } as unknown as import("carapace-mail-runtime").MailEnvelope,
+      {
+        accountLabel: "test-account",
+        logger: () => {},
+      },
+    );
+
+    expect(added).toEqual(["1Z999AA10123456784"]);
   });
 });
