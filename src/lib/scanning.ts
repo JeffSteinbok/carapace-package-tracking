@@ -22,16 +22,16 @@ export interface ScanTextOptions {
 // Text scanning
 // ---------------------------------------------------------------------------
 
-const TRACKING_CONTEXT_PATTERN =
-  /\b(TRACK(?:ING)?|SHIP(?:PING|MENT)?|PACKAGE|DELIVER(?:ED|Y)?|CARRIER|WAYBILL)\b/;
+const TRACKING_NUMBER_CONTEXT_PATTERN =
+  /\b(?:FEDEX|UPS|USPS|TRACKING(?:\s*(?:NO|NUMBER|#))?|TRK(?:\s*(?:NO|NUMBER|#))?|SHIPMENT(?:\s*(?:NO|NUMBER|#))?|WAYBILL(?:\s*(?:NO|NUMBER|#))?)\b/;
 const CONTEXT_WINDOW_SIZE = 80;
 
-function hasTrackingContext(text: string, start: number, end: number): boolean {
+function hasTrackingNumberContext(text: string, start: number, end: number): boolean {
   // We scan a short local window around the candidate to avoid global false positives.
   const windowStart = Math.max(0, start - CONTEXT_WINDOW_SIZE);
   const windowEnd = Math.min(text.length, end + CONTEXT_WINDOW_SIZE);
   const surrounding = text.slice(windowStart, windowEnd);
-  return TRACKING_CONTEXT_PATTERN.test(surrounding);
+  return TRACKING_NUMBER_CONTEXT_PATTERN.test(surrounding);
 }
 
 function shouldKeepMatch(
@@ -50,8 +50,8 @@ function shouldKeepMatch(
   // USPS known prefixes are also fairly specific.
   if (carrier === "USPS" && /^(94|9[2-5])/.test(trackingNumber)) return true;
 
-  // Generic numeric candidates require nearby shipping/tracking context.
-  return hasTrackingContext(fullTextUpper, matchStart, matchEnd);
+  // Generic numeric candidates require nearby carrier/tracking-number context.
+  return hasTrackingNumberContext(fullTextUpper, matchStart, matchEnd);
 }
 
 export function scanTextForTrackingNumbers(
