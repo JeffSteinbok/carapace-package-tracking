@@ -1,6 +1,6 @@
 {
   "name": "carapace-package-tracking",
-  "version": "1.0.3",
+  "version": "1.0.4",
   "description": "🦞🐚📦 Package tracking plugin for OpenClaw — UPS, FedEx, USPS",
   "repository": {
     "type": "git",
