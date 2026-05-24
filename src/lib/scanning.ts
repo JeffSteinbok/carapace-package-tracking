@@ -24,10 +24,12 @@ export interface ScanTextOptions {
 
 const TRACKING_CONTEXT_PATTERN =
   /\b(TRACK(?:ING)?|SHIP(?:PING|MENT)?|PACKAGE|DELIVER(?:ED|Y)?|CARRIER|WAYBILL)\b/;
+const CONTEXT_WINDOW_SIZE = 80;
 
 function hasTrackingContext(text: string, start: number, end: number): boolean {
-  const windowStart = Math.max(0, start - 80);
-  const windowEnd = Math.min(text.length, end + 80);
+  // We scan a short local window around the candidate to avoid global false positives.
+  const windowStart = Math.max(0, start - CONTEXT_WINDOW_SIZE);
+  const windowEnd = Math.min(text.length, end + CONTEXT_WINDOW_SIZE);
   const surrounding = text.slice(windowStart, windowEnd);
   return TRACKING_CONTEXT_PATTERN.test(surrounding);
 }
