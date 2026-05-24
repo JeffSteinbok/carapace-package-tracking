@@ -110,7 +110,7 @@ export async function scanAndAddPackages(
     }
 
     const bodyText = envelope.body_text || "";
-    const found = bodyText ? scanTextForTrackingNumbers(bodyText) : [];
+    const found = bodyText ? scanTextForTrackingNumbers(bodyText, { strict: true }) : [];
 
     const combined = combinedBody(envelope);
     const urlFound = extractTrackingFromUrls(combined);
@@ -154,7 +154,7 @@ export async function scanAndRemoveDelivered(
   const scanText = envelope.body_text || envelope.subject || "";
 
   try {
-    const found = scanTextForTrackingNumbers(scanText);
+    const found = scanTextForTrackingNumbers(scanText, { strict: true });
     if (found.length === 0) {
       options.logger(`delivery email but no tracking number found: ${envelope.subject}`);
       return [];

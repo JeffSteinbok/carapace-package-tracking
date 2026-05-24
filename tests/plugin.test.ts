@@ -168,6 +168,20 @@ describe("text scanning", () => {
     expect(results.length).toBe(1);
   });
 
+  it("strict mode ignores generic long numbers without tracking context", () => {
+    const text = "Invoice 123456789012 and order 123456789012345 are attached.";
+    const results = scanTextForTrackingNumbers(text, { strict: true });
+    expect(results).toEqual([]);
+  });
+
+  it("strict mode keeps numeric tracking numbers with nearby context", () => {
+    const text = "Your FedEx tracking number is 123456789012 and is in transit.";
+    const results = scanTextForTrackingNumbers(text, { strict: true });
+    expect(results).toHaveLength(1);
+    expect(results[0].carrier).toBe("FedEx");
+    expect(results[0].tracking_number).toBe("123456789012");
+  });
+
   it("extracts from UPS url", () => {
     const text = "https://www.ups.com/track?tracknum=1Z999AA10123456784";
     const results = extractTrackingFromUrls(text);
