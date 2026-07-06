@@ -93,7 +93,7 @@ export async function scanAndAddPackages(
     accountLabel: string;
     logger: (msg: string) => void;
   },
-): Promise<string[]> {
+): Promise<Array<{ trackingNumber: string; carrier: string; label: string }>> {
   const senderEmail = envelope.sender_email || "unknown";
   const senderName = envelope.sender_name || "";
   const subject = envelope.subject || "(no subject)";
@@ -118,16 +118,27 @@ export async function scanAndAddPackages(
 
     if (found.length === 0) return [];
 
-    const added: string[] = [];
+    // Try to extract a "Shipped To" recipient from the body for a better label.
+    const shipToMatch = bodyText.match(
+      /shipped\s+to[:\s]+([A-Za-z][^\n]{2,60})/i,
+    ) ?? (envelope.body_html || "").match(
+      /Shipped\s+To[:<\/][^>]*>?\s*([A-Za-z][^<\n]{2,60})/i,
+    );
+    const recipientHint = shipToMatch
+      ? shipToMatch[1].replace(/<[^>]+>/g, "").trim().split(/\n/)[0].trim()
+      : null;
+
+    const added: Array<{ trackingNumber: string; carrier: string; label: string }> = [];
     for (const trackingInfo of found) {
       const { tracking_number: trackingNumber, carrier } = trackingInfo;
-      const label = `${options.accountLabel}: ${senderName || senderEmail} - ${subject.slice(0, 40)}`;
+      const labelBase = recipientHint ?? (senderName || senderEmail);
+      const label = `${options.accountLabel}: ${labelBase} — ${subject.slice(0, 40)}`;
       const result = addPackage(trackingNumber, carrier, label);
       if ("error" in result) {
         options.logger(`warn: failed to add package ${trackingNumber}: ${result["error"]}`);
         continue;
       }
-      added.push(trackingNumber);
+      added.push({ trackingNumber, carrier, label });
       options.logger(`📦 added package: ${trackingNumber} (${carrier}) — ${label}`);
     }
 
@@ -143,7 +154,7 @@ export async function scanAndRemoveDelivered(
   options: {
     logger: (msg: string) => void;
   },
-): Promise<string[]> {
+): Promise<Array<{ trackingNumber: string; carrier: string }>> {
   const scanText = envelope.body_text || envelope.subject || "";
   const combined = combinedBody(envelope);
 
@@ -157,12 +168,12 @@ export async function scanAndRemoveDelivered(
       return [];
     }
 
-    const removed: string[] = [];
+    const removed: Array<{ trackingNumber: string; carrier: string }> = [];
     for (const trackingInfo of found) {
       const { tracking_number: trackingNumber, carrier } = trackingInfo;
       const result = removePackage(trackingNumber);
       if ((result as Record<string, unknown>)["success"]) {
-        removed.push(trackingNumber);
+        removed.push({ trackingNumber, carrier });
         options.logger(`✅ removed delivered package: ${trackingNumber} (${carrier})`);
       } else if ((result as Record<string, unknown>)["error"] === "not_found") {
         options.logger(`delivery notice for untracked package: ${trackingNumber} — ignoring`);
@@ -192,10 +203,10 @@ export function buildDetectTrackingAction(options: {
       const removed = await scanAndRemoveDelivered(ctx.envelope, {
         logger: ctx.logger,
       });
-      return removed.map((trackingNumber) => ({
+      return removed.map(({ trackingNumber, carrier }) => ({
         kind: "message",
         payload: {
-          message: `✅ Package delivered & removed from tracking: ${trackingNumber}`,
+          message: `✅ Package delivered: ${trackingNumber} (${carrier}) — ${ctx.envelope.subject || "(no subject)"}`,
         },
       }));
     }
@@ -204,9 +215,14 @@ export function buildDetectTrackingAction(options: {
       accountLabel: accountLabelResolver(ctx.envelope),
       logger: ctx.logger,
     });
-    return added.map((trackingNumber) => ({
+    const date = ctx.envelope.received_at
+      ? new Date(ctx.envelope.received_at).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })
+      : new Date().toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
+    return added.map(({ trackingNumber, carrier }) => ({
       kind: "message",
-      payload: { message: `📦 Package registered: ${trackingNumber}` },
+      payload: {
+        message: `📦 New package tracked: ${trackingNumber}\n• Carrier: ${carrier}\n• From: ${ctx.envelope.sender_name || ctx.envelope.sender_email || "unknown"}\n• Subject: ${ctx.envelope.subject || "(no subject)"}\n• Date: ${date}`,
+      },
     }));
   };
 }

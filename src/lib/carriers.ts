@@ -34,6 +34,7 @@ export const CARRIER_PATTERNS: CarrierPattern[] = [
   {
     name: "USPS",
     patterns: [
+      "\\b420[0-9]{31}\\b",      // 34-digit Click-N-Ship (420 + ZIP + 22-digit tracking)
       "\\b94[0-9]{20}\\b",
       "\\b9[2-5][0-9]{20}\\b",
       "\\b[0-9]{20,22}\\b",
@@ -58,6 +59,7 @@ export const VALIDATION_PATTERNS: ValidationPattern[] = [
   {
     name: "USPS",
     patterns: [
+      "^420[0-9]{31}$",           // 34-digit Click-N-Ship
       "^94[0-9]{20}$",
       "^9[2-5][0-9]{20}$",
       "^[0-9]{20,22}$",

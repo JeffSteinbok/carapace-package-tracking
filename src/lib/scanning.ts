@@ -48,7 +48,7 @@ function shouldKeepMatch(
   if (!/^\d+$/.test(trackingNumber)) return true;
 
   // USPS known prefixes are also fairly specific.
-  if (carrier === "USPS" && /^(94|9[2-5])/.test(trackingNumber)) return true;
+  if (carrier === "USPS" && /^(94|9[2-5]|420)/.test(trackingNumber)) return true;
 
   // Generic numeric candidates require nearby carrier/tracking-number context.
   return hasTrackingNumberContext(fullTextUpper, matchStart, matchEnd);
@@ -133,8 +133,8 @@ export const URL_EXTRACTION_RULES: UrlExtractionRule[] = [
     name: "USPS",
     url_pattern: "https?://[^\\s\"'<>]*usps\\.com/[^\\s\"'<>]*",
     param_patterns: [
-      "[?&]qtc_tLabels\\d?=(\\d{20,22})",
-      "[?&]tLabels=(\\d{20,22})",
+      "[?&]qtc_tLabels\\d?=(\\d{20,34})",
+      "[?&]tLabels=(\\d{20,34})",
     ],
     carrier_from_path: false,
   },
