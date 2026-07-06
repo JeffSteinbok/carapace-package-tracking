@@ -461,6 +461,6 @@ describe("mail action scanning priority", () => {
       },
     );
 
-    expect(added).toEqual(["1Z999AA10123456784"]);
+    expect(added.map((a) => a.trackingNumber)).toEqual(["1Z999AA10123456784"]);
   });
 });
