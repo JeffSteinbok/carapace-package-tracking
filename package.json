@@ -33,10 +33,12 @@
   "scripts": {
     "build": "tsup && carapace-generate-cli --entry ./dist/plugin.js --out ./dist/bin",
     "prepare": "npm run build",
-    "test": "vitest run"
+    "test": "vitest run",
+    "deploy": "node scripts/deploy.mjs"
   },
   "files": [
     "dist",
+    "python/**/*.py",
     "openclaw.plugin.json",
     "README.md",
     "LICENSE"
