@@ -54,7 +54,6 @@
     "usps"
   ],
   "dependencies": {
-    "@sinclair/typebox": "^0.34.48",
     "carapace-plugin-sdk": "^3.0.0"
   },
   "optionalDependencies": {
@@ -64,7 +63,8 @@
     "@types/node": "^22",
     "tsup": "^8.3.0",
     "typescript": "^5.7",
-    "vitest": "^4.1.8"
+    "vitest": "^4.1.8",
+    "@sinclair/typebox": "^0.34.48"
   },
   "peerDependencies": {
     "openclaw": "^2026.4.23"
