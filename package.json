@@ -54,7 +54,7 @@
     "usps"
   ],
   "dependencies": {
-    "carapace-plugin-sdk": "^3.0.0"
+    "carapace-plugin-sdk": "^3.0.1"
   },
   "optionalDependencies": {
     "carapace-mail-runtime": "^1.0.4"
