@@ -166,6 +166,27 @@ package-tracking package-list
 package-tracking package-scan --text "Your package 1Z999AA10123456784 has shipped!"
 ```
 
+## Deploying a local build to OpenClaw
+
+Install your local build as a packed, managed plugin instead of pointing
+`plugins.load.paths` at this checkout (which drags the dev `node_modules`
+into OpenClaw's update snapshots):
+
+```bash
+npm run deploy              # build → pack to out/package-tracking.tgz → print install command
+npm run deploy -- --install # same, then run the install command
+```
+
+The install command is `openclaw plugins install npm-pack:<repo>/out/package-tracking.tgz --force`.
+OpenClaw installs the pack into its managed plugin root along with the
+package's production `dependencies`. What goes in the pack is controlled by
+`"files"` in `package.json`; the deploy script lists the packed files and
+refuses to deploy if `src/`, `tests/` or `node_modules/` end up in it.
+
+The pack includes the Camoufox Python scripts (`python/`), but not their
+Python dependencies — set those up on the gateway host as described in
+[Camoufox Python Requirements](#camoufox-python-requirements).
+
 ## Storage
 
 Tracked packages are persisted to `~/.openclaw/package_tracking.json`, compatible with other OpenClaw tools.
