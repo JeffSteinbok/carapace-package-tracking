@@ -109,6 +109,8 @@ The USPS and UPS scrapers (and FedEx fallback) use [Camoufox](https://camoufox.c
 
    Camoufox will automatically use Xvfb when no display is available.
 
+   macOS doesn't need this step: Camoufox uses the logged-in user's display session.
+
 5. **Verify the install:**
 
    ```bash
