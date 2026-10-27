@@ -27,8 +27,41 @@ import { scanTextForTrackingNumbers, extractTrackingFromUrls } from "../lib/scan
 // Constants
 // ---------------------------------------------------------------------------
 
+/**
+ * Subject phrases that indicate a completed delivery. Matched as patterns, not
+ * substrings — a bare "delivered" also appears in "will be delivered tomorrow".
+ */
+export const DELIVERY_PATTERNS: RegExp[] = [
+  /^\s*(?:\[[^\]]*\]\s*)?delivered\b/i,                 // "Delivered: ..." subject prefix
+  /\b(?:has|have|had)\s+been\s+(?:successfully\s+)?delivered\b/i,
+  /\b(?:was|were)\s+(?:successfully\s+)?delivered\b/i,
+  /\bdelivered\s+today\b/i,
+  /\bsuccessfully\s+delivered\b/i,
+  /\b(?:package|item|order|shipment|parcel)s?\s+delivered\b/i,
+  /\bdelivery\s+(?:complete|completed|confirmation)\b/i,
+];
+
+/**
+ * Negations, failures and future/in-progress states that override a positive
+ * delivery match ("not delivered", "could not be delivered", "will be
+ * delivered", "out for delivery", "delivery exception", ...).
+ */
+export const DELIVERY_NEGATION_PATTERNS: RegExp[] = [
+  /\b(?:not|never|unable|unsuccessful)\b/i,
+  /n['’]t\b/i,
+  /\bfail(?:ed|ure)?\b/i,
+  /\battempt(?:ed)?\b/i,
+  /\bexception\b/i,
+  /\bdelay(?:ed)?\b/i,
+  /\bundeliver/i,
+  /\b(?:will|to|should|may|could|would)\s+be\s+delivered\b/i,
+  /\bbeing\s+delivered\b/i,
+  /\b(?:expected|scheduled|estimated|arriving|arrives)\b/i,
+  /\bout\s+for\s+delivery\b/i,
+];
+
+/** Kept for backward compatibility; prefer DELIVERY_PATTERNS. */
 export const DELIVERY_KEYWORDS = [
-  "delivered",
   "package delivered",
   "your order has been delivered",
   "delivery complete",
@@ -66,8 +99,9 @@ function isShippingSender(senderEmail: string): boolean {
 // ---------------------------------------------------------------------------
 
 export function isDeliveryNotification(subject: string | null | undefined): boolean {
-  const low = (subject ?? "").toLowerCase();
-  return DELIVERY_KEYWORDS.some((kw) => low.includes(kw));
+  const text = subject ?? "";
+  if (!DELIVERY_PATTERNS.some((re) => re.test(text))) return false;
+  return !DELIVERY_NEGATION_PATTERNS.some((re) => re.test(text));
 }
 
 function isAmazonSender(senderEmail: string): boolean {
@@ -138,6 +172,10 @@ export async function scanAndAddPackages(
         options.logger(`warn: failed to add package ${trackingNumber}: ${result["error"]}`);
         continue;
       }
+      if (result["already_tracked"]) {
+        options.logger(`package already tracked: ${trackingNumber} (${carrier}) — not re-announcing`);
+        continue;
+      }
       added.push({ trackingNumber, carrier, label });
       options.logger(`📦 added package: ${trackingNumber} (${carrier}) — ${label}`);
     }
@@ -175,7 +213,7 @@ export async function scanAndRemoveDelivered(
       if ((result as Record<string, unknown>)["success"]) {
         removed.push({ trackingNumber, carrier });
         options.logger(`✅ removed delivered package: ${trackingNumber} (${carrier})`);
-      } else if ((result as Record<string, unknown>)["error"] === "not_found") {
+      } else if (String((result as Record<string, unknown>)["error"] ?? "").startsWith("Package not found")) {
         options.logger(`delivery notice for untracked package: ${trackingNumber} — ignoring`);
       } else {
         options.logger(`warn: failed to remove ${trackingNumber}: ${JSON.stringify(result)}`);

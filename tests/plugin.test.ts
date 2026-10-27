@@ -7,7 +7,7 @@
 
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { join } from "node:path";
-import { mkdirSync, existsSync, unlinkSync, rmdirSync } from "node:fs";
+import { mkdirSync, existsSync, unlinkSync, rmdirSync, writeFileSync, readFileSync, readdirSync } from "node:fs";
 
 // ---------------------------------------------------------------------------
 // Mock node:os so we can redirect homedir for storage tests
@@ -124,6 +124,38 @@ describe("carrier detection", () => {
 
   it("returns null for unknown carrier", () => {
     expect(getTrackingUrl("NOTAVALIDNUMBER")).toBeNull();
+  });
+
+  it("maps retailer carrier names to a URL", () => {
+    expect(getTrackingUrl("TBA123456789012US", "Shipped with Amazon")).toContain("amazon.com");
+    expect(getTrackingUrl("D10012345678901", "OnTrac")).toContain("ontrac.com");
+    expect(getTrackingUrl("1LS123456789", "LaserShip")).toContain("1LS123456789");
+    expect(getTrackingUrl("1234567890", "DHL Express")).toContain("dhl.com");
+  });
+});
+
+describe("normalizeCarrier", () => {
+  it("normalises retailer carrier names", async () => {
+    const { normalizeCarrier } = await import("../src/lib/carriers.js");
+    expect(normalizeCarrier("Shipped with Amazon", "X")).toBe("Amazon");
+    expect(normalizeCarrier("Amazon Logistics", "X")).toBe("Amazon");
+    expect(normalizeCarrier("Federal Express", "X")).toBe("FedEx");
+    expect(normalizeCarrier("UPS Ground", "X")).toBe("UPS");
+    expect(normalizeCarrier("ONTRAC", "X")).toBe("OnTrac");
+    expect(normalizeCarrier("DHL eCommerce", "X")).toBe("DHL");
+    expect(normalizeCarrier("Some Local Courier", "X")).toBe("Some Local Courier");
+  });
+
+  it("maps TBA numbers to Amazon regardless of reported carrier", async () => {
+    const { normalizeCarrier } = await import("../src/lib/carriers.js");
+    expect(normalizeCarrier("Unknown", "TBA123456789012US")).toBe("Amazon");
+    expect(normalizeCarrier(null, "tba123456789012us")).toBe("Amazon");
+  });
+
+  it("falls back to detection for Unknown/empty", async () => {
+    const { normalizeCarrier } = await import("../src/lib/carriers.js");
+    expect(normalizeCarrier("Unknown", "1Z999AA10123456784")).toBe("UPS");
+    expect(normalizeCarrier("", "NOTAVALIDNUMBER")).toBeNull();
   });
 });
 
@@ -262,6 +294,50 @@ describe("package storage", () => {
   it("rejects unknown carrier", async () => {
     const { addPackage } = await import("../src/lib/storage.js");
     expect(addPackage("INVALIDTRACKING")).toHaveProperty("error");
+  });
+
+  it("stores Amazon TBA numbers reported as 'Shipped with Amazon'", async () => {
+    const { addPackage, getPackage } = await import("../src/lib/storage.js");
+    const result = addPackage("TBA123456789012US", "Shipped with Amazon", "Computers");
+    expect(result).not.toHaveProperty("error");
+    expect(result).toHaveProperty("carrier", "Amazon");
+    expect(getPackage("TBA123456789012US")).toHaveProperty("label", "Computers");
+  });
+
+  it("stores a named carrier without a known URL instead of failing", async () => {
+    const { addPackage } = await import("../src/lib/storage.js");
+    const result = addPackage("ABC123XYZ", "Some Local Courier", "Thing");
+    expect(result).not.toHaveProperty("error");
+    expect(result).toHaveProperty("carrier", "Some Local Courier");
+    expect(result).toHaveProperty("url", "");
+  });
+
+  it("re-adding keeps added_at/label and flags already_tracked", async () => {
+    const { addPackage, getPackage } = await import("../src/lib/storage.js");
+    const first = addPackage("1Z999AA10123456784", undefined, "Original");
+    expect(first).not.toHaveProperty("already_tracked");
+    const second = addPackage("1Z999AA10123456784", undefined, "Clobber", { status: "In transit" });
+    expect(second).toHaveProperty("already_tracked", true);
+    const stored = getPackage("1Z999AA10123456784");
+    expect(stored).toHaveProperty("label", "Original");
+    expect(stored).toHaveProperty("added_at", first["added_at"]);
+    expect(stored).toHaveProperty("status", "In transit");
+    expect(stored).not.toHaveProperty("already_tracked");
+  });
+
+  it("refuses to overwrite a corrupt storage file", async () => {
+    const { addPackage, listPackages } = await import("../src/lib/storage.js");
+    writeFileSync(jsonPath, '{"1Z999AA10123456784": {"tracking_n');
+    expect(() => listPackages()).toThrow(/corrupt/);
+    expect(() => addPackage("1Z999AA10123457777")).toThrow(/corrupt/);
+    expect(readFileSync(jsonPath, "utf-8")).toBe('{"1Z999AA10123456784": {"tracking_n');
+  });
+
+  it("writes atomically without leaving temp files", async () => {
+    const { addPackage } = await import("../src/lib/storage.js");
+    addPackage("1Z999AA10123456784");
+    expect(readdirSync(openclawDir)).toEqual(["package_tracking.json"]);
+    expect(JSON.parse(readFileSync(jsonPath, "utf-8"))).toHaveProperty("1Z999AA10123456784");
   });
 });
 
@@ -462,5 +538,66 @@ describe("mail action scanning priority", () => {
     );
 
     expect(added.map((a) => a.trackingNumber)).toEqual(["1Z999AA10123456784"]);
+  });
+
+  const upsEnvelope = {
+    sender_email: "alerts@ups.com",
+    sender_name: "UPS",
+    subject: "Your UPS package is on the way",
+    body_text: "Track here: https://www.ups.com/track?tracknum=1Z999AA10123456784",
+    body_html: null,
+    account_id: "acct",
+  } as unknown as import("carapace-mail-runtime").MailEnvelope;
+
+  it("does not re-announce an already tracked package", async () => {
+    const { buildDetectTrackingAction } = await import("../src/plugin/mail-action.js");
+    const action = buildDetectTrackingAction({ accountLabelResolver: () => "acct" });
+    const ctx = { envelope: upsEnvelope, logger: () => {} } as unknown as import("carapace-mail-runtime").ActionContext;
+    expect(await action(ctx, {})).toHaveLength(1);
+    expect(await action(ctx, {})).toHaveLength(0);
+  });
+
+  it("logs untracked deliveries as ignored, not as a failure", async () => {
+    const { scanAndRemoveDelivered } = await import("../src/plugin/mail-action.js");
+    const logs: string[] = [];
+    const removed = await scanAndRemoveDelivered(
+      { ...upsEnvelope, subject: "Your package was delivered" } as typeof upsEnvelope,
+      { logger: (m) => logs.push(m) },
+    );
+    expect(removed).toEqual([]);
+    expect(logs.some((l) => l.includes("untracked package"))).toBe(true);
+    expect(logs.some((l) => l.startsWith("warn:"))).toBe(false);
+  });
+});
+
+describe("isDeliveryNotification", () => {
+  it.each([
+    "Delivered: Your Amazon package",
+    "Your package has been delivered",
+    "Your package was delivered",
+    "Your order was successfully delivered",
+    "Package delivered today",
+    "Your shipment was delivered today",
+    "Delivery complete for order 123",
+  ])("treats %j as delivered", async (subject) => {
+    const { isDeliveryNotification } = await import("../src/plugin/mail-action.js");
+    expect(isDeliveryNotification(subject)).toBe(true);
+  });
+
+  it.each([
+    "Your package will be delivered tomorrow",
+    "Not delivered — exception",
+    "Your package was not delivered",
+    "We couldn't deliver your package — it could not be delivered",
+    "Delivery attempted: package not delivered",
+    "Out for delivery: your package will be delivered today",
+    "Your package is expected to be delivered Friday",
+    "Delivered by Friday: your order has shipped, arriving soon",
+    "Delivery exception",
+    "Shipped: your order",
+    "",
+  ])("does not treat %j as delivered", async (subject) => {
+    const { isDeliveryNotification } = await import("../src/plugin/mail-action.js");
+    expect(isDeliveryNotification(subject)).toBe(false);
   });
 });

@@ -20,8 +20,10 @@ export {
   type ValidationPattern,
   CARRIER_PATTERNS,
   VALIDATION_PATTERNS,
+  EXTRA_CARRIER_URL_TEMPLATES,
   detectCarrier,
   getTrackingUrl,
+  normalizeCarrier,
 } from "./carriers.js";
 
 // Text scanning
